@@ -2,7 +2,7 @@ import argparse
 from datetime import datetime
 from os import makedirs
 
-MODELS = ['gemini-flash-2.5', 'deepseek-V3.1']
+MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'deepseek-V3.1']
 PROMPT_TECHNIQUES = ['zero-shot', 'cognitive-verifier', 'role-prompting', 'chain-of-thought']
 
 def parse_arguments():

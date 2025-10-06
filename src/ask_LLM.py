@@ -3,24 +3,13 @@ import requests
 import os
 from dotenv import load_dotenv
 from typing import Dict, Any
+from google import genai
 
 load_dotenv(override = True)
 
 def generate_prompt(prompt_engineering_technique: str, vulnerability: str, chat_context = '') -> str:
     '''
     Creates a prompt to ask an LLM to generate a correction patch using a specified prompt engineering technique.
-
-    Args:
-        prompt_engineering_technique: Prompt engineering technique to be used in the generated prompt
-        vulnerability: Vulnerability to be patched by the LLM's generated shell script.
-        chat_context: Context for cognitive verifier prompt engineering technique
-
-    Returns:
-        String containing a prompt to ask and LLM to return a BASH shell script capable of correcting the specified
-        vulnerability once executed. The prompt will utilize the specified prompt engineering technique.
-
-    Raises:
-        ValueError: If an invalid prompt_engineering_technique is provided.
     '''
 
     if not vulnerability.strip():
@@ -31,7 +20,7 @@ def generate_prompt(prompt_engineering_technique: str, vulnerability: str, chat_
     match prompt_engineering_technique:
         case 'zero-shot' | 'cognitive-verifier':
             return f'''
-Generate a safe, idempotent, auditable BASH shell script capable of correcting the following vulnerability: ({vulnerability}) once executed.
+Generate a safe, idempotent, auditable BASH shell script capable of correcting the following vulnerability: ({vulnerability}) once executed on a Pop!OS 22.04 operating system.
 {footer}'''
 
         case 'cognitive-verifier-follow-up':
@@ -46,13 +35,13 @@ If not, modify it, correcting it and making it so that it can actually fully cor
         case 'role-prompting':
             return f'''
 You are a senior linux systems security engineer.
-Your job is to produce a safe, idempotent, auditable BASH shell script that remediates the following vulnerability: ({vulnerability}) when executed on the target system.
+Your job is to produce a safe, idempotent, auditable BASH shell script that remediates the following vulnerability: ({vulnerability}) when executed on a Pop!OS 22.04 operating system.
 {footer}'''
         
         
         case 'chain-of-thought':
             return f''' 
-Generate a safe, idempotent, auditable BASH shell script capable of correcting the following vulnerability: ({vulnerability}) once executed.
+Generate a safe, idempotent, auditable BASH shell script capable of correcting the following vulnerability: ({vulnerability}) once executed on a Pop!OS 22.04 operating system.
 Your response MUST follow this exact structure, with each section clearly defined:
 
 ## 1. Vulnerability Analysis
@@ -87,10 +76,6 @@ Generate the final BASH script based on the plan above. The script MUST adhere t
 def ask_deepseek(prompt: str, timeout = 200) -> dict:
     '''
     Send a prompt to DeepSeek API via OpenRouter.
-
-    Args:
-        prompt: The user prompt to send
-        timeout: Request timout in seconds (default: 200)
     
     Returns:
         Dict with "status" ("OK" or "ERR"), containing "content" if "status" is "OK" 
@@ -129,7 +114,7 @@ def ask_deepseek(prompt: str, timeout = 200) -> dict:
             return {'status': 'ERR', 
                     'details': f'Error while retrieving API data. Status code: {response.status_code}'}
         
-    except requests.exceptions.TImeout:
+    except requests.exceptions.Timeout:
         return {'status': 'ERR', 
                 'details': f'Request timeoud out after {timeout} seconds'}
     except requests.exceptions.RequestException as e:
@@ -143,27 +128,48 @@ def ask_deepseek(prompt: str, timeout = 200) -> dict:
                 'details': f'Unexpeted error: {str(e)}'}
 
 
+
+def ask_gemini(prompt: str, model: str) -> dict:
+    '''
+    Send a prompt to Gemini.
+
+    Returns:
+        Dict with "status" ("OK" or "ERR"), containing "content" if "status" is "OK" 
+        or "details" if "status" is "ERR". 
+    '''
+
+    client = genai.Client()
+    contents = prompt
+
+    try:
+        response = client.models.generate_content(model = model, contents = contents)
+        print(response)
+        return {
+            'status': 'OK',
+            'content': response.text
+        }
+    except Exception as e:
+        return {
+            'status': 'ERR',
+            'details': f'Unexpected error: {str(e)}'
+        }
+
+
 def call_LLM(model: str, prompt: str) -> Dict[str, Any]:
     '''
     Sends a prompt to the specified LLM model.
 
-    Args:
-        model: LLM model.
-        prompt: Prompt to be sent to the LLM api.
-    
     Returns:
         Dict with "status" ("OK" or "ERR"), containing "content" if "status" is "OK" 
         or "details" if "status" is "ERR". 
-
-    Raises:
-        ValueError: If model argument is invalid.
     '''
 
     match model:
         case 'deepseek-V3.1':
             return ask_deepseek(prompt)
-        case 'gemini-flash-2.5':
-            # still developing
-            pass
+        case 'gemini-2.5-flash':
+            return ask_gemini(prompt, 'gemini-2.5-flash')
+        case 'gemini-2.5-pro':
+            return ask_gemini(prompt, 'gemini-2.5-pro')
         case _:
             raise ValueError(f'Unknown model: {model}')
