@@ -143,7 +143,6 @@ def ask_gemini(prompt: str, model: str) -> dict:
 
     try:
         response = client.models.generate_content(model = model, contents = contents)
-        print(response)
         return {
             'status': 'OK',
             'content': response.text

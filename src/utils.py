@@ -32,7 +32,7 @@ def save_results(model: str, technique: str, vulnerability: str, patch_content: 
     '''
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-    base_path = f'scripts/{model}/{technique}/{vulnerability}/{timestamp}'
+    base_path = f'../scripts/{model}/{technique}/{vulnerability}/{timestamp}'
 
     print(f'Creating directory: {base_path}...')
 
