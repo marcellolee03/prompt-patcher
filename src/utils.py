@@ -32,7 +32,7 @@ def save_results(model: str, technique: str, vulnerability: str, patch_content: 
     '''
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-    base_path = f'../scripts/{model}/{technique}/{vulnerability}/{timestamp}'
+    base_path = f'../scripts/{model}/{vulnerability}/{technique}/{timestamp}'
 
     print(f'Creating directory: {base_path}...')
 
@@ -60,6 +60,8 @@ def save_results(model: str, technique: str, vulnerability: str, patch_content: 
                 f.write(f'Prompt {i+1}:\n')
                 f.write(f'{prompt}\n')
                 f.write('----------\n')
+            
+            f.write('Successful?: ')
         print(f'Correction patch and its details stored successfully at: {base_path}')
 
     except FileExistsError:
